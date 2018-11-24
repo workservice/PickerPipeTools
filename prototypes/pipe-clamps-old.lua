@@ -4,10 +4,6 @@ local west = {position = {-1, 0}}
 local east = {position = {1, 0}}
 
 local nameTable = {
-    --[[["none"] = {
-        locale = "[none]",
-        positions = {},
-    },]] --
     ['E'] = {
         locale = '[East]',
         positions = {east}
@@ -237,20 +233,16 @@ local function _create_picture_table_(data, name)
                         currentLayerData,
                         {
                             filename = clamped_layer[pictureName].hr_image_path,
-                            --"__PickerPipeTools__/graphics/icons/lock.png",
                             priority = 'extra-high',
                             width = 128,
                             height = 128,
-                            --scale = 0.8,
                             scale = 0.25,
-                            --shift = util.by_pixel(0, -5),
                             hr_version = {
                                 filename = clamped_layer[pictureName].hr_image_path,
                                 priority = 'extra-high',
                                 width = 128,
                                 height = 128,
                                 scale = 0.5
-                                --shift = util.by_pixel(0, -5)
                             }
                         }
                     }
@@ -268,20 +260,16 @@ local function _create_picture_table_(data, name)
                         currentLayerData,
                         {
                             filename = clamped_layer[pictureName].hr_image_path,
-                            --"__PickerPipeTools__/graphics/icons/lock.png",
                             priority = 'extra-high',
                             width = 128,
                             height = 128,
-                            --scale = 0.8,
                             scale = 0.25,
-                            --shift = util.by_pixel(0, -5),
                             hr_version = {
                                 filename = layer_image_to_keep,
                                 priority = 'extra-high',
                                 width = 128,
                                 height = 128,
                                 scale = 0.5
-                                --shift = util.by_pixel(0, -5)
                             }
                         }
                     }
@@ -301,7 +289,7 @@ if settings.startup['picker-tool-pipe-clamps'].value then
                 current_entity.name = pipe.name .. '-clamped-' .. name
                 current_entity.clamped = true
                 current_entity.localised_name = {'pipe-tools.clamped-name', pipe.name, pipeData.locale}
-                current_entity.placeable_by = {item = pipe.minable and pipe.minable.result or pipe.name, count = pipe.minable and pipe.minable.count or 1}
+                current_entity.placeable_by = nil
                 current_entity.icons = {
                     {
                         icon = current_entity.icon or data.raw['pipe']['pipe'].icon,
@@ -312,11 +300,9 @@ if settings.startup['picker-tool-pipe-clamps'].value then
                         icon_size = 32
                     }
                 }
-                current_entity.flags = {'placeable-neutral', 'player-creation', 'fast-replaceable-no-build-while-moving'}
+                current_entity.flags = {}
                 current_entity.fluid_box.pipe_connections = pipeData.positions
                 current_entity.fluid_box.pipe_covers = _G.pipecoverspictures()
-                --local picture_table = util.table.deepcopy(current_entity.pictures)
-                --current_entity.pictures = create_picture_table(picture_table, name)
                 for pictureName, _ in pairs(current_entity.pictures) do
                     if not dontChange[pictureName] then
                         if clamped_layer[pictureName] and clamped_layer[pictureName].add_layer then

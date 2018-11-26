@@ -1,5 +1,5 @@
 --- Extends Lua 5.2 math.
--- @module math
+-- @module Utils.math
 -- @see math
 -- @usage local math = require('__stdlib__/stdlib/utils/math')
 
@@ -10,6 +10,7 @@ local math_floor = math.floor
 local math_ceil = math.ceil
 local math_min = math.min
 local math_max = math.max
+local math_huge = math.huge
 local log10 = math.log10
 local unpack = table.unpack
 
@@ -29,7 +30,7 @@ Math.MAX_INT16 = Math.MAXINT16
 Math.MIN_INT16 = Math.MININT16
 Math.MAX_UINT16 = Math.MAXUINT16
 
-Math.MAXINT =  2147483648
+Math.MAXINT = 2147483648
 Math.MAX_INT = Math.MAXINT
 Math.MAXINT32 = Math.MAXINT
 Math.MAX_INT32 = Math.MAXINT
@@ -52,7 +53,7 @@ Math.MIN_INT64 = Math.MININT64
 Math.MAX_UINT64 = Math.MAXUINT64
 --))
 
-local function tupple(...)
+local function tuple(...)
     return type(...) == 'table' and ... or {...}
 end
 
@@ -90,17 +91,17 @@ end
 -- @treturn number ceiled to p decimal spaces.
 function Math.ceil_to(x, p)
     local e = 10 ^ (p or 0)
-    return math_ceil(x * e + 0.5) /e
+    return math_ceil(x * e + 0.5) / e
 end
 
 -- Various average (means) algorithms implementation
 -- See: http://en.wikipedia.org/wiki/Average
 
 --- Calculates the sum of a sequence of values.
--- @tparam tupple ... a tuple of numbers
+-- @tparam tuple ... a tuple of numbers
 -- @treturn the sum
 function Math.sum(...)
-    local x = tupple(...)
+    local x = tuple(...)
     local s = 0
     for _, v in ipairs(x) do
         s = s + v
@@ -112,7 +113,7 @@ end
 -- @tparam array x an array of numbers
 -- @treturn number the arithmetic mean
 function Math.arithmetic_mean(...)
-    local x = tupple(...)
+    local x = tuple(...)
     return (Math.sum(x) / #x)
 end
 
@@ -122,7 +123,7 @@ Math.avg = Math.arithmetic_mean
 -- @tparam array x an array of numbers
 -- @treturn number the geometric mean
 function Math.geometric_mean(...)
-    local x = tupple(...)
+    local x = tuple(...)
     local prod = 1
     for _, v in ipairs(x) do
         prod = prod * v
@@ -131,10 +132,10 @@ function Math.geometric_mean(...)
 end
 
 --- Calculates the harmonic mean of a set of values.
--- @tparam tupple ... an array of numbers
+-- @tparam tuple ... an array of numbers
 -- @treturn number the harmonic mean
 function Math.harmonic_mean(...)
-    local x = tupple(...)
+    local x = tuple(...)
     local s = 0
     for _, v in ipairs(x) do
         s = s + (1 / v)
@@ -143,10 +144,10 @@ function Math.harmonic_mean(...)
 end
 
 --- Calculates the quadratic mean of a set of values.
--- @tparam tupple ... an array of numbers
+-- @tparam tuple ... an array of numbers
 -- @treturn number the quadratic mean
 function Math.quadratic_mean(...)
-    local x = tupple(...)
+    local x = tuple(...)
     local squares = 0
     for _, v in ipairs(x) do
         squares = squares + (v * v)
@@ -156,10 +157,10 @@ end
 
 --- Calculates the generalized mean (to a specified power) of a set of values.
 -- @tparam number p power
--- @tparam tupple ... an array of numbers
+-- @tparam tuple ... an array of numbers
 -- @treturn number the generalized mean
 function Math.generalized_mean(p, ...)
-    local x = tupple(...)
+    local x = tuple(...)
     local sump = 0
     for _, v in ipairs(x) do
         sump = sump + (v ^ p)
@@ -183,7 +184,7 @@ end
 -- @tparam array x an array of numbers
 -- @treturn number the midrange mean
 function Math.midrange_mean(...)
-    local x = tupple(...)
+    local x = tuple(...)
     return 0.5 * (math_min(unpack(x)) + math_max(unpack(x)))
 end
 
@@ -191,7 +192,7 @@ end
 -- @tparam array x an array of numbers
 -- @treturn number the energetic mean
 function Math.energetic_mean(...)
-    local x = tupple(...)
+    local x = tuple(...)
     local s = 0
     for _, v in ipairs(x) do
         s = s + (10 ^ (v / 10))
@@ -222,13 +223,12 @@ function Math.pingpong(x)
     return 1 - math_abs(1 - x % 2)
 end
 
+function Math.is_number(x)
+    return x == x and x ~= math_huge
+end
+
 for k, v in pairs(math) do
     Math[k] = v
-end
-if not (_G.STDLIB and _G.STDLIB.no_global_math) then
-    for k, v in pairs(Math) do
-        _G.math[k] = v
-    end
 end
 
 return Math

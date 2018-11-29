@@ -452,7 +452,8 @@ local function un_clamp_pipe(entity, player, area_unclamp)
     local event = {
         created_entity = new,
         player_index = player.index,
-        clamped = false
+        clamped = true,
+        replaced_entity_unit_number = old_entity_unit_number
     }
     script.raise_event(defines.events.script_raised_built, event)
     if entity then

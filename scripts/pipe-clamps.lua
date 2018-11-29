@@ -186,6 +186,7 @@ end
 local function place_clamped_pipe(entity, table_entry, player, lock_pipe, autoclamp, area_clamp)
     --local player, pdata = Player.get(player.index)
     local entity_position = entity.position
+    local old_entity_unit_number = entity.unit_number
     local new
     if table_entry <= 85 and clamped_name[table_entry] then
         local filter_table = entity.fluidbox.get_filter(1)
@@ -217,7 +218,8 @@ local function place_clamped_pipe(entity, table_entry, player, lock_pipe, autocl
         local event = {
             created_entity = new,
             player_index = player.index,
-            clamped = true
+            clamped = true,
+            replaced_entity_unit_number = old_entity_unit_number
         }
         script.raise_event(defines.events.script_raised_built, event)
         if entity then

@@ -147,7 +147,7 @@ local function show_underground_sprites(event)
         local entity_neighbours = entity.neighbours[1]
         local entity_type = entity.type
         local entity_name = entity.name
-        if draw_dashes_types[entity_type] or draw_dashes_names[entity_name] and not string.find(entity_name, '%-clamped%-') then
+        if (draw_dashes_types[entity_type] or draw_dashes_names[entity_name]) and not string.find(entity_name, '%-clamped%-') then
             read_entity_data[entity_unit_number] = {
                 entity_position,
                 entity_neighbours,
@@ -173,7 +173,6 @@ local function show_underground_sprites(event)
                 position = entity_data[1]
             }
         end
-
         for _, neighbour in pairs(entity_data[2]) do
             local neighbour_unit_number = neighbour.unit_number
             local neighbour_data = read_entity_data[neighbour_unit_number]
@@ -517,7 +516,7 @@ local function get_pipeline(event)
             if next(pdata.current_pipeline_table) then
                 destroy_markers(pdata.current_marker_table)
                 pdata.current_pipeline_table = nil
-                pdata.all_markers = nil
+                pdata.current_marker_table = nil
             end
         end
     end

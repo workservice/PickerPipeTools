@@ -424,6 +424,7 @@ local function pipe_autoclamp_clamp(event, unclamp)
 end
 
 local function un_clamp_pipe(entity, player, area_unclamp)
+    local old_entity_unit_number = entity.unit_number
     local pos = entity.position
     local filter_table = entity.fluidbox.get_filter(1)
     local event_data = {

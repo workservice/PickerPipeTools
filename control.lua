@@ -3,7 +3,7 @@ Event.protected_mode = true
 
 require('lib/area')
 require('lib/position')
-
+require('lib/direction')
 require('lib/player').register_events(true)
 
 --(( Load Scripts ))--

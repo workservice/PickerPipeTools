@@ -7,7 +7,7 @@
 local Player = require('lib/player')
 local Event = require('lib/event')
 local Position = require('lib/position')
-
+local Direction = require('lib/direction')
 local pipe_connections = {}
 local function load_pipe_connections()
     if remote.interfaces['underground-pipe-pack'] then
@@ -284,7 +284,7 @@ local function highlight_pipeline(starter_entity, player_index)
             if (entity_neighbours[1] and not entity_neighbours[2]) then
                 local neighbour_to_check = (read_entity_data[entity_neighbours[1]] and read_entity_data[entity_neighbours[1]][1]) or (read_neighbour_data[entity_neighbours[1]] and read_neighbour_data[entity_neighbours[1]][1])
                 local check_direction = get_direction(neighbour_to_check, entity_position)
-                local rail_connection = player.surface.find_entities_filtered {position = Position.translate(entity_position, check_direction, 1.5), type = 'straight-rail'}[1]
+                local rail_connection = player.surface.find_entities_filtered {position = Position(entity_position):copy():translate(check_direction, 1.5), type = 'straight-rail'}[1]
                 if rail_connection then
                     directions_table[check_direction] = true
                 end
@@ -329,10 +329,10 @@ local function highlight_pipeline(starter_entity, player_index)
                     --? Get directional relation from connected neighbour to pump
                     local check_direction = get_direction(entity_neighbours[1].position, entity_position)
                     --? Then translate in that direction outwards to see if there's a track.
-                    local rail_connection = player.surface.find_entities_filtered {position = Position.translate(entity_position, check_direction, 1.5), type = 'straight-rail'}[1]
+                    local rail_connection = player.surface.find_entities_filtered {position = Position(entity_position):copy():translate(check_direction, 1.5), type = 'straight-rail'}[1]
                     if rail_connection then
                         local current_direction = get_direction(entity_position, rail_connection.position)
-                        draw_marker(Position.translate(entity_position, current_direction, 1.5), 'good', 2 ^ Position.opposite_direction(current_direction))
+                        draw_marker(Position(entity_position):copy():translate(current_direction, 1.5), 'good', 2 ^ Direction.opposite_direction(current_direction))
                     else
                         orphan_counter = orphan_counter + 1
                         tracked_orphans[entity_unit_number] = true
@@ -378,7 +378,7 @@ local function highlight_pipeline(starter_entity, player_index)
                     draw_marker_distance = 1
                 end
                 --? This marks from the neighbour to the current entity. This ensures properly aligned markers that connect to the current entity.
-                draw_marker(Position.translate(entity_position, current_direction, draw_marker_distance), 'good', 2 ^ Position.opposite_direction(current_direction))
+                draw_marker(Position(entity_position):copy():translate(current_direction, draw_marker_distance), 'good', 2 ^ Direction.opposite_direction(current_direction))
                 all_entities_marked[neighbour_unit_number] = true
             end
         end

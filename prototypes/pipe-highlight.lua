@@ -17,6 +17,7 @@ local base_entity = {
         height = 64,
         frame_count = 1,
         direction_count = 1,
+        shift = {-0.5,-0.6},
         filename = '__PickerPipeTools__/graphics/entity/markers/32x32highlightergood.png'
     }
 }
@@ -58,15 +59,15 @@ for dots, images in pairs(dot_table) do
             local current_entity = util.table.deepcopy(base_entity)
             current_entity.type = 'corpse'
             current_entity.name = dots .. directions
-            current_entity.animation.shift = {0, -0.1}
+            --current_entity.animation.shift = {0, -0.1}
             if direction_index == '0' then
                 current_entity.final_render_layer = 'light-effect'
+                current_entity.animation.scale = 0.5
+            else
+              current_entity.animation.width = 32
+              current_entity.animation.height = 32
             end
             current_entity.animation.filename = '__PickerPipeTools__/graphics/entity/markers/' .. images .. directions .. '.png'
-            if direction_index == '0' then
-                current_entity.animation.shift = {-0.5, -0.6}
-                current_entity.animation.scale = 0.5
-            end
             new_dots[#new_dots + 1] = current_entity
         end
     end

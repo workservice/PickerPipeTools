@@ -464,10 +464,16 @@ local function un_clamp_pipe(entity, player, area_unclamp)
 end
 
 local function toggle_pipe_clamp(event)
+    -- TODO Better logic probably needed, but this should fix it
     local player = game.players[event.player_index]
     local pforce = player.force
+
+
     local selected = player.selected
     local area_clamp = event.name == ev.on_player_selected_area or event.name == ev.on_player_alt_selected_area
+    if area_clamp and not event.item == 'picker-pipe-clamper' then
+        return
+    end
     local clamp = event.name == ev.on_player_selected_area or (not area_clamp and selected and selected.type == 'pipe')
 
     local entities = event.entities or {selected}

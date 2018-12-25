@@ -8,6 +8,7 @@ local Player = require('lib/player')
 local Event = require('lib/event')
 local Position = require('lib/position')
 local Direction = require('lib/direction')
+local utils = require('scripts/utils')
 local pipe_connections = {}
 local function load_pipe_connections()
     if remote.interfaces['underground-pipe-pack'] then
@@ -15,6 +16,19 @@ local function load_pipe_connections()
     end
 end
 Event.register({Event.core_events.init, Event.core_events.load}, load_pipe_connections)
+
+--? Tables for read-limits
+local allowed_types = {
+    ['pipe'] = true,
+    ['pipe-to-ground'] = true,
+    ['pump'] = true
+}
+
+local not_allowed_names = {
+    ['factory-fluid-dummy-connector'] = true,
+    ['factory-fluid-dummy-connector-south'] = true,
+    ['offshore-pump-output'] = true
+}
 
 --? Bit styled table. 2 ^ defines.direction is used for entry to the table. Only compatible with 4 way directions.
 local directional_table = {
@@ -34,19 +48,6 @@ local directional_table = {
     [81] = '-nsw',
     [84] = '-sew',
     [85] = '-nsew'
-}
-
---? Tables for read-limits
-local allowed_types = {
-    ['pipe'] = true,
-    ['pipe-to-ground'] = true,
-    ['pump'] = true
-}
-
-local not_allowed_names = {
-    ['factory-fluid-dummy-connector'] = true,
-    ['factory-fluid-dummy-connector-south'] = true,
-    ['offshore-pump-output'] = true
 }
 
 --? Table for types and names to draw dashes between
@@ -94,34 +95,6 @@ local pipe_highlight_markers = {
         ['bad'] = 'picker-pipe-marker-beam-bad'
     }
 }
-
-local function get_ew(delta_x)
-    return delta_x > 0 and defines.direction.west or defines.direction.east
-end
-
-local function get_ns(delta_y)
-    return delta_y > 0 and defines.direction.north or defines.direction.south
-end
-
-local function get_direction(entity_position, neighbour_position)
-    local abs = math.abs
-    local delta_x = entity_position.x - neighbour_position.x
-    local delta_y = entity_position.y - neighbour_position.y
-    if delta_x ~= 0 then
-        if delta_y == 0 then
-            return get_ew(delta_x)
-        else
-            local adx, ady = abs(delta_x), abs(delta_y)
-            if adx > ady then
-                return get_ew(delta_x)
-            else --? Exact diagonal relations get returned as a north/south relation.
-                return get_ns(delta_y)
-            end
-        end
-    else
-        return get_ns(delta_y)
-    end
-end
 
 local function show_underground_sprites(event)
     local player, pdata = Player.get(event.player_index)
@@ -178,8 +151,8 @@ local function show_underground_sprites(event)
             local neighbour_data = read_entity_data[neighbour_unit_number]
             if neighbour_data then
                 if draw_dashes_types[neighbour_data[3]] or draw_dashes_names[neighbour_data[4]] and not string.find(neighbour_data[4], '%-clamped%-') and not all_entities_marked[neighbour_unit_number] then
-                    local start_position = Position.translate(entity_data[1], get_direction(entity_data[1], neighbour_data[1]), 0.5)
-                    local end_position = Position.translate(neighbour_data[1], get_direction(neighbour_data[1], entity_data[1]), 0.5)
+                    local start_position = Position.translate(entity_data[1], utils.get_direction(entity_data[1], neighbour_data[1]), 0.5)
+                    local end_position = Position.translate(neighbour_data[1], utils.get_direction(neighbour_data[1], entity_data[1]), 0.5)
                     markers_made = markers_made + 1
                     all_markers[markers_made] =
                         create {
@@ -272,18 +245,18 @@ local function highlight_pipeline(starter_entity, player_index)
             if current_neighbour then
                 --end
                 --if not (draw_dashes_types[current_neighbour[3]] or draw_dashes_names[current_neighbour[4]]) then
-                directions_table[get_direction(entity_position, current_neighbour[1])] = true
+                directions_table[utils.get_direction(entity_position, current_neighbour[1])] = true
             else
                 local alternate_neighbour = read_neighbour_data[neighbour_unit_number]
                 if alternate_neighbour then
-                    directions_table[get_direction(entity_position, alternate_neighbour[1])] = true
+                    directions_table[utils.get_direction(entity_position, alternate_neighbour[1])] = true
                 end
             end
         end
         if pump then --? This just ensures marking against a rail.
             if (entity_neighbours[1] and not entity_neighbours[2]) then
                 local neighbour_to_check = (read_entity_data[entity_neighbours[1]] and read_entity_data[entity_neighbours[1]][1]) or (read_neighbour_data[entity_neighbours[1]] and read_neighbour_data[entity_neighbours[1]][1])
-                local check_direction = get_direction(neighbour_to_check, entity_position)
+                local check_direction = utils.get_direction(neighbour_to_check, entity_position)
                 local rail_connection = player.surface.find_entities_filtered {position = Position(entity_position):copy():translate(check_direction, 1.5), type = 'straight-rail'}[1]
                 if rail_connection then
                     directions_table[check_direction] = true
@@ -327,17 +300,18 @@ local function highlight_pipeline(starter_entity, player_index)
                 --? If it's a pump, and it does have one neighbour, see if the other side is a rail.
                 if (#entity_neighbours == 1) then
                     --? Get directional relation from connected neighbour to pump
-                    local check_direction = get_direction(entity_neighbours[1].position, entity_position)
+                    local check_direction = utils.get_direction(entity_neighbours[1].position, entity_position)
                     --? Then translate in that direction outwards to see if there's a track.
                     local rail_connection = player.surface.find_entities_filtered {position = Position(entity_position):copy():translate(check_direction, 1.5), type = 'straight-rail'}[1]
                     if rail_connection then
-                        local current_direction = get_direction(entity_position, rail_connection.position)
+                        local current_direction = utils.get_direction(entity_position, rail_connection.position)
                         draw_marker(Position(entity_position):copy():translate(current_direction, 1.5), 'good', 2 ^ Direction.opposite_direction(current_direction))
                     else
                         orphan_counter = orphan_counter + 1
                         tracked_orphans[entity_unit_number] = true
                     end
-                else --? If it's a pump and doesn't report having a neighbour, I'm not even gonna check if there's a track. It's an orphan.
+                else
+                    --? If it's a pump and doesn't report having a neighbour, I'm not even gonna check if there's a track. It's an orphan.
                     orphan_counter = orphan_counter + 1
                     tracked_orphans[entity_unit_number] = true
                 end
@@ -363,16 +337,18 @@ local function highlight_pipeline(starter_entity, player_index)
                         read_pipeline(neighbour, neighbour_unit_number, neighbour_position, neighbour_type, neighbour_name)
                     end
                 end
-            else --? Store and mark objects that aren't allowed to be traversed to. (Endpoints such as storage-tank, oil-refinery, etc.)
+            else
+                --? Store and mark objects that aren't allowed to be traversed to. (Endpoints such as storage-tank, oil-refinery, etc.)
                 read_neighbour_data[neighbour_unit_number] = {
                     neighbour_position,
                     neighbour_type,
                     neighbour_name,
                     neighbour
                 }
-                local current_direction = get_direction(entity_position, neighbour_position)
+                local current_direction = utils.get_direction(entity_position, neighbour_position)
                 local draw_marker_distance
-                if entity_type == 'pump' then --? Pumps are longer. Marker has to be bumped a little further.
+                if entity_type == 'pump' then
+                    --? Pumps are longer. Marker has to be bumped a little further.
                     draw_marker_distance = 1.5
                 else
                     draw_marker_distance = 1
@@ -469,7 +445,8 @@ local function highlight_pipeline(starter_entity, player_index)
                 all_entities_marked[unit_number] = true
             end
         end
-    else --? If there's not an orphan, mark the whole line green.
+    else
+        --? If there's not an orphan, mark the whole line green.
         for unit_number, current_entity in pairs(read_entity_data) do
             if not all_entities_marked[unit_number] then
                 if draw_dashes_types[current_entity[3]] or draw_dashes_names[current_entity[4]] then
@@ -553,14 +530,11 @@ local function clear_markers(event)
 end
 commands.add_command('clear-all-markers', {'highlight-commands.clear-markers'}, clear_markers)
 
-local truthy = {['on'] = true, ['true'] = true}
-local falsey = {['off'] = true, ['false'] = true}
-
 local function toggle_auto_highlight(event)
     local player, pdata = Player.get(event.player_index)
-    if truthy[event.parameter] then
+    if utils.truthy[event.parameter] then
         pdata.disable_auto_highlight = false
-    elseif falsey[event.parameter] then
+    elseif utils.falsey[event.parameter] then
         pdata.disable_auto_highlight = true
     else
         pdata.disable_auto_highlight = not pdata.disable_auto_highlight

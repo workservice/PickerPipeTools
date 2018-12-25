@@ -6,76 +6,32 @@
 
 local Event = require('lib/event')
 local Player = require('lib/player')
+local utils = require('scripts/utils')
 
-local ev = defines.events
+--[[
+    defines.direction.north     == 0    1
+    defines.direction.east     == 2         4
+    defines.direction.south     == 4        16
+    defines.direction.west     == 6         64
+--]]
 
---[[defines.direction.north     == 0    1
-defines.direction.east     == 2         4
-defines.direction.south     == 4        16
-defines.direction.west     == 6         64
-]]
 local map_clamped_name = {
     --[0] = "-clamped-none",
-    ['-clamped-N'] = {
-        name = '-clamped-single',
-        direction = defines.direction.north
-    },
-    ['-clamped-E'] = {
-        name = '-clamped-single',
-        direction = defines.direction.east
-    },
-    ['-clamped-NE'] = {
-        name = '-clamped-l',
-        direction = defines.direction.east
-    },
-    ['-clamped-S'] = {
-        name = '-clamped-single',
-        direction = defines.direction.south
-    },
-    ['-clamped-NS'] = {
-        name = '-clamped-i',
-        direction = defines.direction.north
-    },
-    ['-clamped-SE'] = {
-        name = '-clamped-l',
-        direction = defines.direction.south
-    },
-    ['-clamped-NSE'] = {
-        name = '-clamped-t',
-        direction = defines.direction.east
-    },
-    ['-clamped-W'] = {
-        name = '-clamped-single',
-        direction = defines.direction.west
-    },
-    ['-clamped-NW'] = {
-        name = '-clamped-l',
-        direction = defines.direction.north
-    },
-    ['-clamped-EW'] = {
-        name = '-clamped-i',
-        direction = defines.direction.east
-    },
-    ['-clamped-NEW'] = {
-        name = '-clamped-t',
-        direction = defines.direction.north
-    },
-    ['-clamped-SW'] = {
-        name = '-clamped-l',
-        direction = defines.direction.west
-    },
-    ['-clamped-NSW'] = {
-        name = '-clamped-t',
-        direction = defines.direction.west
-    },
-    ['-clamped-SEW'] = {
-        name = '-clamped-t',
-        direction = defines.direction.south
-    },
-    ['-clamped-NSEW'] = {
-        name = '-clamped-x',
-        direction = defines.direction.north
-    }
+    ['-clamped-N'] = {name = '-clamped-single', direction = defines.direction.north},
+    ['-clamped-E'] = {name = '-clamped-single', direction = defines.direction.east},
+    ['-clamped-NE'] = {name = '-clamped-l', direction = defines.direction.east},
+    ['-clamped-S'] = {name = '-clamped-single', direction = defines.direction.south},
+    ['-clamped-NS'] = {name = '-clamped-i', direction = defines.direction.north},
+    ['-clamped-SE'] = {name = '-clamped-l', direction = defines.direction.south},
+    ['-clamped-NSE'] = {name = '-clamped-t', direction = defines.direction.east},
+    ['-clamped-W'] = {name = '-clamped-single', direction = defines.direction.west},
+    ['-clamped-NW'] = {name = '-clamped-l', direction = defines.direction.north},
+    ['-clamped-EW'] = {name = '-clamped-i', direction = defines.direction.east},
+    ['-clamped-NEW'] = {name = '-clamped-t', direction = defines.direction.north},
+    ['-clamped-SW'] = {name = '-clamped-l', direction = defines.direction.west},
+    ['-clamped-NSW'] = {name = '-clamped-t', direction = defines.direction.west},
+    ['-clamped-SEW'] = {name = '-clamped-t', direction = defines.direction.south},
+    ['-clamped-NSEW'] = {name = '-clamped-x', direction = defines.direction.north}
 }
 
 local clamped_name = {
@@ -97,73 +53,11 @@ local clamped_name = {
     [85] = '-clamped-NSEW'
 }
 
-local clamped_name_match = {
-    --[0] = "-clamped-none",
-    [1] = '%-clamped%-N$',
-    [4] = '%-clamped%-E$',
-    [5] = '%-clamped%-NE$',
-    [16] = '%-clamped%-S$',
-    [17] = '%-clamped%-NS$',
-    [20] = '%-clamped%-SE$',
-    [21] = '%-clamped%-NSE$',
-    [64] = '%-clamped%-W$',
-    [65] = '%-clamped%-NW$',
-    [68] = '%-clamped%-EW$',
-    [69] = '%-clamped%-NEW$',
-    [80] = '%-clamped%-SW$',
-    [81] = '%-clamped%-NSW$',
-    [84] = '%-clamped%-SEW$',
-    [85] = '%-clamped%-NSEW$'
-}
-
-local function migrate_clamped_pipes(event)
-    local changes = event.mod_changes and event.mod_changes['PickerPipeTools']
-    if changes and changes.new_version == '0.1.3' and changes.old_version then
-        local counter = 0
-        for _, surface in pairs(game.surfaces) do
-            for _, pipe in pairs(surface.find_entities_filtered({type = 'pipe'})) do
-                if string.find(pipe.name, '%-clamped%-') then
-                    for table_entry in pairs(clamped_name) do
-                        local is_match = string.find(pipe.name, clamped_name_match[table_entry])
-                        if is_match then
-                            pipe.surface.create_entity {
-                                name = pipe.prototype.mineable_properties.products[1].name .. map_clamped_name[clamped_name[table_entry]].name,
-                                position = pipe.position,
-                                direction = map_clamped_name[clamped_name[table_entry]].direction,
-                                force = pipe.force,
-                                fast_replace = true,
-                                spill = false
-                            }
-                            counter = counter + 1
-                            break
-                        end
-                    end
-                end
-            end
-        end
-        game.print(counter .. ' clamps migrated to new pipes. Old clamped pipes in the map on all layers have been removed.')
-        game.print('Blueprints will still contain the old version.')
-        game.print('Misalignment of marker sprite can be fixed with restart. Only happens after update and once.')
-        game.print('Automatic clamping can be toggled with <CTRL + SHIFT + C>')
-    end
-end
-
 local not_clampable_pipes = {
     ['4-to-4-pipe'] = true,
     ['factory-fluid-dummy-connector'] = true,
     ['factory-fluid-dummy-connector-south'] = true
 }
-local yellow = {r = 1, g = 1}
-local green = {g = 1}
-local red = {r = 1}
-
-local function getEW(deltaX)
-    return deltaX > 0 and defines.direction.west or defines.direction.east
-end
-
-local function getNS(deltaY)
-    return deltaY > 0 and defines.direction.north or defines.direction.south
-end
 
 -- can return nil or entity
 local function get_last_pipe(player, pdata)
@@ -210,7 +104,7 @@ local function place_clamped_pipe(entity, table_entry, player, lock_pipe, autocl
                 position = entity_position,
                 text = {'pipe-tools.clamped'},
                 time_to_live = 60,
-                color = green
+                color = utils.color.green
             }
         end
         new.last_user = player
@@ -232,7 +126,7 @@ local function place_clamped_pipe(entity, table_entry, player, lock_pipe, autocl
                 position = entity_position,
                 text = {'pipe-tools.fail'},
                 time_to_live = 120,
-                color = red
+                color = utils.color.red
             }
         end
     end
@@ -247,14 +141,14 @@ local function get_direction(entity, neighbour)
     local deltaX = entity.position.x - neighbour.position.x
     local deltaY = entity.position.y - neighbour.position.y
     if deltaX ~= 0 and deltaY == 0 then
-        table_entry = table_entry + 2 ^ (getEW(deltaX))
+        table_entry = table_entry + 2 ^ (utils.get_ew(deltaX))
     elseif deltaX == 0 and deltaY ~= 0 then
-        table_entry = table_entry + 2 ^ (getNS(deltaY))
+        table_entry = table_entry + 2 ^ (utils.get_ns(deltaY))
     elseif deltaX ~= 0 and deltaY ~= 0 then
         if math.abs(deltaX) > math.abs(deltaY) then
-            table_entry = table_entry + 2 ^ (getEW(deltaX))
+            table_entry = table_entry + 2 ^ (utils.get_ew(deltaX))
         elseif math.abs(deltaX) < math.abs(deltaY) then
-            table_entry = table_entry + 2 ^ (getNS(deltaY))
+            table_entry = table_entry + 2 ^ (utils.get_ns(deltaY))
         end
     end
     return table_entry
@@ -268,16 +162,16 @@ local function clamp_pipe(entity, player, lock_pipe, autoclamp, reverse_entity, 
             local deltaX = entity.position.x - neighbour.position.x
             local deltaY = entity.position.y - neighbour.position.y
             if deltaX ~= 0 and deltaY == 0 then
-                table_entry = table_entry + 2 ^ (getEW(deltaX))
+                table_entry = table_entry + 2 ^ (utils.get_ew(deltaX))
                 neighbour_count = neighbour_count + 1
             elseif deltaX == 0 and deltaY ~= 0 then
-                table_entry = table_entry + 2 ^ (getNS(deltaY))
+                table_entry = table_entry + 2 ^ (utils.get_ns(deltaY))
                 neighbour_count = neighbour_count + 1
             elseif deltaX ~= 0 and deltaY ~= 0 then
                 if math.abs(deltaX) > math.abs(deltaY) then
-                    table_entry = table_entry + 2 ^ (getEW(deltaX))
+                    table_entry = table_entry + 2 ^ (utils.get_ew(deltaX))
                 elseif math.abs(deltaX) < math.abs(deltaY) then
-                    table_entry = table_entry + 2 ^ (getNS(deltaY))
+                    table_entry = table_entry + 2 ^ (utils.get_ns(deltaY))
                 end
                 neighbour_count = neighbour_count + 1
             end
@@ -307,15 +201,6 @@ local function get_distance(entity, neighbour)
 end
 --))
 
---[[local function count_fluid_boxes(subsequent_entities, entity)
-    local fluid_box_counter = 0
-    for _, subsequent_neighbour in pairs(subsequent_entities) do
-        if subsequent_neighbour ~= entity then
-            fluid_box_counter = fluid_box_counter + 1
-        end
-    end
-    return fluid_box_counter
-end]]
 local function check_sub_neighbours(sub_neighbours, neighbour, entity)
     local fluid_box_counter = 0
     for _, subsequent_entities in pairs(sub_neighbours) do
@@ -347,46 +232,56 @@ local function pipe_autoclamp_clamp(event, unclamp)
                 local neighbour_fluid = get_pipe_info(neighbour).fluid_name
                 if current_fluid then
                     --! Ensure fluids don't mix
-                    if neighbour_fluid and (neighbour_fluid ~= current_fluid) then --? If the neighbour has a fluid and they don't match, we're clamping it. Period.
+                    if neighbour_fluid and (neighbour_fluid ~= current_fluid) then
+                        --? If the neighbour has a fluid and they don't match, we're clamping it. Period.
                         neighbour.surface.create_entity {
                             name = 'flying-text',
                             position = neighbour.position,
                             text = {'pipe-tools.mismatch'},
                             time_to_live = 120,
                             speed = 0,
-                            color = red
+                            color = utils.color.red
                         }
                         pipes_to_clamp[#pipes_to_clamp + 1] = neighbour
-                    elseif not unclamp and not pdata.disable_auto_clamp then --? This is not a logic duplicate of below. This branch is different and has a different purpose than above.
+                    elseif not unclamp and not pdata.disable_auto_clamp then
+                        --? This is not a logic duplicate of below. This branch is different and has a different purpose than above.
                         --! If the player wasn't unclamping, do further checks if auto clamp is on.
-                        if last_pipe and neighbour ~= last_pipe then --? If there's a last pipe make sure it isnt the neighbour. If it's not clamp it. Allows parallel laying and T-ing into a pipeline.
+                        if last_pipe and neighbour ~= last_pipe then
+                            --? If there's a last pipe make sure it isnt the neighbour. If it's not clamp it. Allows parallel laying and T-ing into a pipeline.
                             pipes_to_clamp[#pipes_to_clamp + 1] = check_sub_neighbours(neighbour.neighbours, neighbour, entity)
-                        elseif not last_pipe then --? Explicit check to make sure there isn't a last pipe. I don't want false to the above but then last pipe getting clamped anyways.
+                        elseif not last_pipe then
+                            --? Explicit check to make sure there isn't a last pipe. I don't want false to the above but then last pipe getting clamped anyways.
                             pipes_to_clamp[#pipes_to_clamp + 1] = check_sub_neighbours(neighbour.neighbours, neighbour, entity)
                         end
                     end
-                elseif not unclamp and not pdata.disable_auto_clamp then --? If the current pipe doesn't have a fluid, make sure the player wasn't just unclamping, and make sure auto clamp is on.
+                elseif not unclamp and not pdata.disable_auto_clamp then
+                    --? If the current pipe doesn't have a fluid, make sure the player wasn't just unclamping, and make sure auto clamp is on.
                     --! <AUTO CLAMP MODE>
-                    if last_pipe and neighbour ~= last_pipe and get_distance(entity, last_pipe) == 1 then --? This will see if last pipe exists, make sure that the neighbour isn't the last pipe, and if it isn't, see if it's within a tile (Tracking last pipes fluid)
-                        if last_pipe_data.fluid_name and neighbour_fluid and (last_pipe_data.fluid_name ~= neighbour_fluid) then --? Within, if the last pipe has a fluid name see if the neighbour has a fluid. If so, do they match? If not clamp that neighbour. Allows parallel pipe laying of dissimilar fluids.
+                    if last_pipe and neighbour ~= last_pipe and get_distance(entity, last_pipe) == 1 then
+                        --? This will see if last pipe exists, make sure that the neighbour isn't the last pipe, and if it isn't, see if it's within a tile (Tracking last pipes fluid)
+                        if last_pipe_data.fluid_name and neighbour_fluid and (last_pipe_data.fluid_name ~= neighbour_fluid) then
+                            --? Within, if the last pipe has a fluid name see if the neighbour has a fluid. If so, do they match? If not clamp that neighbour. Allows parallel pipe laying of dissimilar fluids.
                             neighbour.surface.create_entity {
                                 name = 'flying-text',
                                 position = neighbour.position,
                                 text = {'pipe-tools.mismatch'},
                                 time_to_live = 120,
                                 speed = 0,
-                                color = red
+                                color = utils.color.red
                             }
                             pipes_to_clamp[#pipes_to_clamp + 1] = neighbour
-                        else --? Clamp the neighbour if it's part of an existing pipeline
+                        else
+                            --? Clamp the neighbour if it's part of an existing pipeline
                             pipes_to_clamp[#pipes_to_clamp + 1] = check_sub_neighbours(neighbour.neighbours, neighbour, entity)
                         end
                     elseif not last_pipe or (last_pipe and get_distance(entity, last_pipe) ~= 1) then --? Catches all other cases
                         pipes_to_clamp[#pipes_to_clamp + 1] = check_sub_neighbours(neighbour.neighbours, neighbour, entity)
                     end
                 end
-            elseif not pdata.disable_auto_clamp and neighbour.type == 'storage-tank' then --? If it's not a pipe, we need to clamp our own pipe instead.
-                local neighbour_fluid = get_pipe_info(neighbour).fluid_name --? NOTES: Try simple entity placement to prevent spam.
+            elseif not pdata.disable_auto_clamp and neighbour.type == 'storage-tank' then
+                --? If it's not a pipe, we need to clamp our own pipe instead.
+                local neighbour_fluid = get_pipe_info(neighbour).fluid_name
+                --? NOTES: Try simple entity placement to prevent spam.
                 if current_fluid then --?
                     if current_fluid ~= neighbour_fluid then --?
                         entity.surface.create_entity {
@@ -395,19 +290,20 @@ local function pipe_autoclamp_clamp(event, unclamp)
                             text = {'pipe-tools.mismatch'},
                             time_to_live = 120,
                             speed = 0,
-                            color = red
+                            color = utils.color.red
                         }
                         clamp_self = neighbour
                     end
                 elseif last_pipe and neighbour ~= last_pipe and get_distance(entity, last_pipe) == 1 then
-                    if last_pipe_data.fluid_name and neighbour_fluid and (last_pipe_data.fluid_name ~= neighbour_fluid) then --? Last tracked fluid
+                    if last_pipe_data.fluid_name and neighbour_fluid and (last_pipe_data.fluid_name ~= neighbour_fluid) then
+                        --? Last tracked fluid
                         entity.surface.create_entity {
                             name = 'flying-text',
                             position = entity.position,
                             text = {'pipe-tools.mismatch'},
                             time_to_live = 120,
                             speed = 0,
-                            color = red
+                            color = utils.color.red
                         }
                         clamp_self = neighbour
                     end
@@ -445,7 +341,7 @@ local function un_clamp_pipe(entity, player, area_unclamp)
             name = 'flying-text',
             position = pos,
             text = {'pipe-tools.unclamped'},
-            color = yellow
+            color = utils.color.yellow
         }
     end
     new.last_user = player
@@ -464,28 +360,32 @@ local function un_clamp_pipe(entity, player, area_unclamp)
 end
 
 local function toggle_pipe_clamp(event)
-    -- TODO Better logic probably needed, but this should fix it
     local player = game.players[event.player_index]
     local pforce = player.force
 
-
-    local selected = player.selected
-    local area_clamp = event.name == ev.on_player_selected_area or event.name == ev.on_player_alt_selected_area
-    if area_clamp and not event.item == 'picker-pipe-clamper' then
+    local tool = utils.selection_tool_event[event.name]
+    if tool and event.item ~= 'picker-pipe-clamper' then
         return
     end
-    local clamp = event.name == ev.on_player_selected_area or (not area_clamp and selected and selected.type == 'pipe')
 
+    local selected = player.selected
+    local clamp = event.name == defines.events.on_player_selected_area or (not tool and selected and selected.type == 'pipe')
     local entities = event.entities or {selected}
 
     for _, entity in pairs(entities) do
         if entity.valid then
             local name, type = entity.name, entity.type
-            local same_force = entity.force == pforce
-            if clamp and entity.type == 'pipe' and same_force and not not_clampable_pipes[name] then
-                clamp_pipe(entity, player, not area_clamp and clamp, false, false, area_clamp)
-            elseif not clamp and type == 'pipe-to-ground' and same_force and name:find('%-clamped%-') then
-                un_clamp_pipe(entity, player, area_clamp)
+
+            if entity.force == pforce then
+                if clamp then
+                    if entity.type == 'pipe' and not not_clampable_pipes[name] then
+                        clamp_pipe(entity, player, not tool and clamp, false, false, tool)
+                    end
+                else
+                    if type == 'pipe-to-ground' and name:find('%-clamped%-') then
+                        un_clamp_pipe(entity, player, tool)
+                    end
+                end
             end
         end
     end
@@ -494,7 +394,8 @@ end
 local function on_built_entity(event)
     if event.created_entity and event.created_entity.type == 'pipe' and not not_clampable_pipes[event.created_entity.name] then
         local _, pdata = Player.get(event.player_index)
-        local position_to_save = event.created_entity.position --? Store position ahead of time. Entity can be invalidated (replaced) during the following function before storing it's position.
+        --? Store position ahead of time. Entity can be invalidated (replaced) during the following function before storing it's position.
+        local position_to_save = event.created_entity.position
         pipe_autoclamp_clamp(event, false)
         pdata.last_pipe_position = position_to_save
     end
@@ -506,14 +407,11 @@ local function on_player_rotated_entity(event)
     end
 end
 
-local truthy = {['on'] = true, ['true'] = true}
-local falsey = {['off'] = true, ['false'] = true}
-
 local function toggle_auto_clamp(event)
     local player, pdata = Player.get(event.player_index)
-    if truthy[event.parameter] then
+    if utils.truthy[event.parameter] then
         pdata.disable_auto_clamp = false
-    elseif falsey[event.parameter] then
+    elseif utils.falsey[event.parameter] then
         pdata.disable_auto_clamp = true
     else
         pdata.disable_auto_clamp = not pdata.disable_auto_clamp
@@ -528,7 +426,6 @@ if settings.startup['picker-tool-pipe-clamps'].value then
     Event.register(defines.events.on_built_entity, on_built_entity)
     Event.register(defines.events.on_player_rotated_entity, on_player_rotated_entity)
     Event.register('picker-auto-clamp-toggle', toggle_auto_clamp)
-    Event.register(Event.core_events.on_configuration_changed, migrate_clamped_pipes)
     commands.add_command('autoclamp', {'autoclamp-commands.toggle-autoclamp'}, toggle_auto_clamp)
 end
 remote.add_interface(script.mod_name, require('lib/interface'))
